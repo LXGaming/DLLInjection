@@ -14,19 +14,36 @@ bool InjectDynamicLibrary(DWORD pid, char* path) {
 
 	HANDLE targetProcess = OpenProcess(PROCESS_ALL_ACCESS, false, pid);
 	if (!targetProcess) {
-		ConsoleOutput::Error("Target process is invalid!");
+		ConsoleOutput::Error("Specified process could not be found!");
 		return false;
 	}
 
 	LPVOID loadLibAddr = (LPVOID)GetProcAddress(GetModuleHandleA("kernel32.dll"), "LoadLibraryA");
+	if (!loadLibAddr) {
+		ConsoleOutput::Error("LoadLibraryA function was not found inside kernel32.dll library!");
+		return false;
+	}
+
 	LPVOID loadPath = VirtualAllocEx(targetProcess, NULL, strlen(path), MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 	//VirtualAllocEx(targetProcess, 0, strlen(path) + 1, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+	if (!loadPath) {
+		ConsoleOutput::Error("Memory could not be allocated inside the chosen process!");
+		return false;
+	}
 
 	BOOL loadMemory = WriteProcessMemory(targetProcess, loadPath, path, strlen(path), NULL);
 	//BOOL LoadMemory = WriteProcessMemory(targetProcess, LoadPath, path, strlen(path) + 1, 0);
+	if (!loadMemory) {
+		ConsoleOutput::Error("Memory could not be written!");
+		return false;
+	}
 
 	HANDLE remoteThread = CreateRemoteThread(targetProcess, NULL, NULL, (LPTHREAD_START_ROUTINE)loadLibAddr, loadPath, NULL, NULL);
 	//HANDLE remoteThread = CreateRemoteThread(targetProcess, 0, 0, (LPTHREAD_START_ROUTINE)LoadLibAddr, LoadPath, 0, 0);
+	if (!remoteThread) {
+		ConsoleOutput::Error("Remote thread could not be created!");
+		return false;
+	}
 
 	WaitForSingleObject(remoteThread, INFINITE);
 
