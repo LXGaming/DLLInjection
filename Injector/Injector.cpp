@@ -1,6 +1,3 @@
-// DLLInjection.cpp : Defines the entry point for the console application.
-//
-
 #include "stdafx.h"
 #include "Windows.h"
 #include "TlHelp32.h"
